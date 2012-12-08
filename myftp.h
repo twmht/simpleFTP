@@ -29,6 +29,7 @@
 #define ACK 		03		/* acknowledgement */
 #define ERROR   	04		/* error code */
 #define	MFMAXDATA	512		/* data size */
+#define MAXINTERFACES 20    /*max network interface"*/
 struct myFtphdr {
 	short mf_opcode;
 	unsigned short mf_cksum;

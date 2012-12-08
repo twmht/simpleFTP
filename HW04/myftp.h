@@ -28,6 +28,7 @@
 #define	ADDRLEN		20
 #define FNAMELEN	128
 #define MAXLINE		1500/* For Opcode */
+/*different*/
 #define REQ 		01		/* Client Request */
 #define RES		02		/* Server Response */
 #define DAT 	   	03		/* Data Package */
