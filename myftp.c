@@ -81,10 +81,13 @@ int initCliAddr(int socketfd, int port, char *sendClient,struct sockaddr_in *add
 		printf("setsockopt error!\n");
 		exit(1);
 	}
-    bzero(addr,sizeof(struct sockaddr_in));
 	addr->sin_family = AF_INET;
 	addr->sin_port = htons(port);
-    inet_aton("140.117.169.131",&(addr->sin_addr));
+    /*addr->sin_addr.s_addr = htonl(INADDR_BROADCAST);*/
+    if(inet_aton(sendClient,&(addr->sin_addr)) == 0){
+        perror("iner_aton");
+        exit(1);
+    }
 
     return 0;
 }
@@ -97,8 +100,8 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
     //          Use setsockopt to set timeout
 	int len=sizeof(struct sockaddr_in);
 	struct bootServerInfo bootInfo;
-	bzero(&bootInfo,sizeof(struct bootServerInfo));
     strcpy(bootInfo.filename,filename);
+
 	if(sendto(socketfd,&bootInfo,sizeof(struct bootServerInfo),0,(struct sockaddr *)broadaddr,len)<0){
 		printf("sendto error!\n");
 		exit(1);
@@ -107,9 +110,10 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
     /*set time out*/
     struct timeval timeout = {3,0};
     if(setsockopt(socketfd,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval)) != 0){
-        perror("setsockopt");
+        perror("setsockopt for time out");
         exit(1);
     }
+
 
     //receive from server
 	bzero(servaddr,sizeof(struct sockaddr_in));
