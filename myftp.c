@@ -67,7 +67,6 @@ int initServAddr(int socketfd, int port, const char *device,struct sockaddr_in *
 	bzero(&serveraddr,sizeof(struct sockaddr_in));
 	serveraddr = *((struct sockaddr_in*)&interface.ifr_addr);
 	printf("Server IP : %s\n", inet_ntoa(serveraddr.sin_addr));
-	printf("Myftp server start!\n");
 
     return 0;
 }
@@ -85,7 +84,7 @@ int initCliAddr(int socketfd, int port, char *sendClient,struct sockaddr_in *add
     bzero(addr,sizeof(struct sockaddr_in));
 	addr->sin_family = AF_INET;
 	addr->sin_port = htons(port);
-    inet_aton(sendClient,&(addr->sin_addr));
+    inet_aton("140.117.169.131",&(addr->sin_addr));
 
     return 0;
 }
