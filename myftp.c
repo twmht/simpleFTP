@@ -77,6 +77,16 @@ int initCliAddr(int socketfd, int port, char *sendClient,struct sockaddr_in *add
     //Function: Set socketfd with broadcast option and the broadcast address(struct sockaddr_in)
     //Hint:     Use setsockopt to set broadcast option
 
+    int flag=1;
+	if(setsockopt(socketfd,SOL_SOCKET,SO_BROADCAST,&flag,sizeof(int))<0){
+		printf("setsockopt error!\n");
+		exit(1);
+	}
+    bzero(&addr,sizeof(struct sockaddr_in));
+	addr->sin_family = AF_INET;
+	addr->sin_port = htons(port);
+    inet_aton(sendClient,&(addr->sin_addr));
+
     return 0;
 }
 
@@ -86,6 +96,35 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
     //          Set timeout to wait for server replay
     //Hint:     Use struct bootServerInfo as boradcast message
     //          Use setsockopt to set timeout
+	int len=sizeof(struct sockaddr_in);
+	struct bootServerInfo bootInfo;
+	bzero(&bootInfo,sizeof(struct bootServerInfo));
+    strcpy(bootInfo.filename,filename);
+	if(sendto(socketfd,&bootInfo,sizeof(struct bootServerInfo),0,(struct sockaddr *)broadaddr,len)<0){
+		printf("sendto error!\n");
+		exit(1);
+	}
+
+    //set time out
+    struct timeval timeout = {3,0};
+    if(setsockopt(socketfd,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval)) != 0){
+        perror("setsockopt");
+        exit(1);
+    }
+
+    //receive from server
+	bzero(servaddr,sizeof(struct sockaddr_in));
+    int s = recvfrom(socketfd,&bootInfo,sizeof(bootInfo),MSG_WAITALL,(struct sockaddr*)&servaddr,&len);
+    if(s == -1){
+        if(errno == ETIMEDOUT){
+            printf("receive server response time out!!\n");
+            exit(1);
+        }
+    }
+    else{
+        printf("find myftpServer IP : %s\n",bootInfo.servAddr);
+        printf("Myftp connent Port:%d\n",bootInfo.connectPort);
+    }
 
     return 0;
 }
@@ -94,8 +133,14 @@ int listenClient(int socketfd, int port, char *filename, struct sockaddr_in *cli
 {
     //Function: Wait for broadcast message from client
     //          As receive broadcast message, check file exist or not
-    //          Set bootServerInfo with server address and new port, and send back to client
-
+    //          Set bootServerInfo with server address and new port, and send back to clientint len = sizeof(struct sockaddr_in);
+    int len = sizeof(struct sockaddr_in);
+	struct bootServerInfo bootInfo;
+    bzero(&bootInfo,sizeof(struct bootServerInfo));
+	if(recvfrom(socketfd, &bootInfo, sizeof(bootInfo), 0, (struct sockaddr *)clientaddr, &len) < 0){
+		perror("recvfrom error");
+		exit(1);
+	}
 
     return 0;
 }

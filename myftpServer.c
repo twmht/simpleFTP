@@ -8,6 +8,7 @@ int main(int argc,char **argv)
     struct stat buf;
     struct sockaddr_in servaddr, clientaddr;
     char device[DEVICELEN];
+    printf("%d\n",ETIMEDOUT);
 
     if(argc != 3)
     {
@@ -33,10 +34,29 @@ int main(int argc,char **argv)
 
     //Function: Server can serve multiple clients
     //Hint: Use loop, listenClient(), startMyFtpServer(), and ( fork() or thread ) 
+    printf("Myftp Server Start!!\nWait clients\n");
+    printf("Share file: %s\n",argv[2]);
+    int port = atoi(argv[1]);
+    char filename[FNAMELEN];
+    srand(time(NULL));
     while(1){
         if (listenClient(socketfd, port, filename, &clientaddr) == 1) {
+            //send back
+            struct bootServerInfo bootInfo;
+            bzero(&bootInfo,sizeof(struct bootServerInfo));
+            char *client_ip = inet_ntoa(clientaddr.sin_addr);
+            printf("Client from %s connect!!\n",client_ip);
+            port = port + (rand()%1000);
+            bootInfo.connectPort = port;
+            strcpy(bootInfo.servAddr,inet_ntoa(servaddr.sin_addr));
+            printf("Myftp connect port : %d\n",bootInfo.connectPort);
+
+            if((sendto(socketfd, &bootInfo, sizeof(bootInfo), 0, (struct sockaddr *)&clientaddr, sizeof(struct sockaddr_in)))<0){
+                perror("sendto error");
+                exit(1);
+            }
             printf("enter strarMyftpServer()\n");
-            clientaddr.sin_port = htons(port);
+            /*clientaddr.sin_port = htons(port);*/
             /*startMyftpServer(&clientaddr, filename);*/
         }
     }
