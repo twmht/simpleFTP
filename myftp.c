@@ -78,11 +78,11 @@ int initCliAddr(int socketfd, int port, char *sendClient,struct sockaddr_in *add
     //Hint:     Use setsockopt to set broadcast option
 
     int flag=1;
-	if(setsockopt(socketfd,SOL_SOCKET,SO_BROADCAST,&flag,sizeof(int))<0){
+	if(setsockopt(socketfd,SOL_SOCKET,SO_BROADCAST,&flag,sizeof(flag))<0){
 		printf("setsockopt error!\n");
 		exit(1);
 	}
-    bzero(&addr,sizeof(struct sockaddr_in));
+    bzero(addr,sizeof(struct sockaddr_in));
 	addr->sin_family = AF_INET;
 	addr->sin_port = htons(port);
     inet_aton(sendClient,&(addr->sin_addr));
@@ -105,7 +105,7 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
 		exit(1);
 	}
 
-    //set time out
+    /*set time out*/
     struct timeval timeout = {3,0};
     if(setsockopt(socketfd,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval)) != 0){
         perror("setsockopt");
@@ -116,10 +116,8 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
 	bzero(servaddr,sizeof(struct sockaddr_in));
     int s = recvfrom(socketfd,&bootInfo,sizeof(bootInfo),MSG_WAITALL,(struct sockaddr*)&servaddr,&len);
     if(s == -1){
-        if(errno == ETIMEDOUT){
-            printf("receive server response time out!!\n");
-            exit(1);
-        }
+        printf("receive server response time out!!\n");
+        exit(1);
     }
     else{
         printf("find myftpServer IP : %s\n",bootInfo.servAddr);

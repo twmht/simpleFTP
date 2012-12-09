@@ -7,4 +7,4 @@ all: $(main_server).c $(main_client).c $(my_ftp).o
 $(my_ftp).o: $(my_ftp).h $(my_ftp).c
 	gcc -c $(my_ftp).c
 clean:
-	rm -f $(my_ftp).o
+	rm -f $(my_ftp).o $(main_client) $(main_server)

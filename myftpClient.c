@@ -19,8 +19,8 @@ int main(int argc, char **argv)
 	if(findServerAddr(socketfd, argv[2], &broadaddr, &servaddr))
 		errCTL("findServerAddr");
 	
-	if(startMyftpClient(&servaddr, argv[2]))
-			errCTL("startMyftpClient");
+	/*if(startMyftpClient(&servaddr, argv[2]))*/
+			/*errCTL("startMyftpClient");*/
 	
 	return 0;
 }
