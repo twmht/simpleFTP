@@ -43,16 +43,23 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
     }
 
 
+    printf("filename = %s\n",filename);
     //receive from server
 	bzero(servaddr,sizeof(struct sockaddr_in));
     int s = recvfrom(socketfd,&bootInfo,sizeof(bootInfo),MSG_WAITALL,(struct sockaddr*)&servaddr,&len);
+    printf("filename = %s\n",filename);
     if(s == -1){
         printf("receive server response time out!!\n");
         exit(1);
     }
     else{
         printf("find myftpServer IP : %s\n",bootInfo.servAddr);
-        printf("Myftp connent Port:%d\n",bootInfo.connectPort);
+        if(bootInfo.filename[0] != '\0'){
+            printf("Myftp connent Port:%d\n",bootInfo.connectPort);
+        }
+        else if(bootInfo.filename[0] == '\0'){
+            printf("No filename \"%s\" in the myftpServer\n",filename);
+        }
     }
 
     return 0;
