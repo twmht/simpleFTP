@@ -46,11 +46,12 @@ int initServAddr(int socketfd, int port, const char *device,struct sockaddr_in *
         perror("setsockopt");
         exit(1);
     }
-    bzero(addr,sizeof(*addr));
-    addr->sin_family=AF_INET;
-    addr->sin_port= htons(port);
-    addr->sin_addr.s_addr=htonl(INADDR_ANY);
-    if(bind(socketfd, (struct sockaddr *)addr, sizeof(struct sockaddr_in)) < 0){
+	struct sockaddr_in any;
+    bzero(&any,sizeof(any));
+    any.sin_family=AF_INET;
+    any.sin_port= htons(port);
+    any.sin_addr.s_addr=htonl(INADDR_ANY);
+    if(bind(socketfd, (struct sockaddr *)(&any), sizeof(struct sockaddr_in)) < 0){
 		printf("Bind error!\n");
 		exit(1);
 	}
@@ -63,10 +64,9 @@ int initServAddr(int socketfd, int port, const char *device,struct sockaddr_in *
 		exit(1);
 	}
 
-	struct sockaddr_in serveraddr;
-	bzero(&serveraddr,sizeof(struct sockaddr_in));
-	serveraddr = *((struct sockaddr_in*)&interface.ifr_addr);
-	printf("Server IP : %s\n", inet_ntoa(serveraddr.sin_addr));
+	/*addr = ((struct sockaddr_in*)&interface.ifr_addr);*/
+    memcpy(addr,(struct sockaddr_in*)&interface.ifr_addr,sizeof(interface.ifr_addr));
+	printf("Server IP : %s\n", inet_ntoa(addr->sin_addr));
 
     return 0;
 }
@@ -93,6 +93,9 @@ int listenClient(int socketfd, int port, char *filename, struct sockaddr_in *cli
 		perror("recvfrom error");
 		exit(1);
 	}
+    else{
+        return 1;
+    }
 
     return 0;
 }

@@ -8,7 +8,6 @@ int main(int argc,char **argv)
     struct stat buf;
     struct sockaddr_in servaddr, clientaddr;
     char device[DEVICELEN];
-    printf("%d\n",ETIMEDOUT);
 
     if(argc != 3)
     {
