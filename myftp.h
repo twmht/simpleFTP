@@ -30,6 +30,7 @@
 #define ERROR   	04		/* error code */
 #define	MFMAXDATA	512		/* data size */
 #define MAXINTERFACES 20    /*max network interface"*/
+#define FILE_NOT_EXIST 10
 struct myFtphdr {
 	short mf_opcode;
 	unsigned short mf_cksum;

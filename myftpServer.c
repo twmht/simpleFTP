@@ -38,8 +38,9 @@ int main(int argc,char **argv)
     int port = atoi(argv[1]);
     char filename[FNAMELEN];
     srand(time(NULL));
+    int listen_result;
     while(1){
-        if (listenClient(socketfd, port, filename, &clientaddr) == 1) {
+        if ((listen_result = listenClient(socketfd, port, filename, &clientaddr))>0) {
             //send back
             struct bootServerInfo bootInfo;
             bzero(&bootInfo,sizeof(struct bootServerInfo));
@@ -47,6 +48,12 @@ int main(int argc,char **argv)
             printf("Client from %s connect!!\n",client_ip);
             port = port + (rand()%1000);
             bootInfo.connectPort = port;
+            if (listen_result != FILE_NOT_EXIST){
+                strcpy(bootInfo.filename,filename);
+            }
+            else{
+                bootInfo.filename[0] = '\0';
+            }
             strcpy(bootInfo.servAddr,inet_ntoa(servaddr.sin_addr));
             printf("Myftp connect port : %d\n",bootInfo.connectPort);
 
