@@ -1,5 +1,16 @@
 #include "myftp.h"
-static unsigned short in_cksum(unsigned short *addr, int len)
+int send_packet(int socketfd,struct myFtphdr *packet,struct sockaddr_in *addr,unsigned short block,short opcode,int size){
+    int len = sizeof(struct sockaddr_in);
+    memset(packet,0,size);
+    packet->mf_opcode=htons(opcode);
+    packet->mf_cksum=0;
+    packet->mf_block = block;
+    packet->mf_cksum=in_cksum((unsigned short *)packet,size);
+    if((sendto(socketfd, packet,size ,0, (struct sockaddr *)addr, len))<0){
+        errCTL("sendto");
+    }
+}
+unsigned short in_cksum(unsigned short *addr, int len)
 {
     int nleft = len;
     int sum = 0;

@@ -72,8 +72,82 @@ int initServAddr(int socketfd, int port, const char *device,struct sockaddr_in *
 }
 int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename)
 {
+    int socketfd;
+    if((socketfd= socket(AF_INET,SOCK_DGRAM,0))<0){
+        perror("Socket Error!");
+        exit(1);
+	}
+    /*set time out*/
+    struct timeval timeout = {3,0};
+    if(setsockopt(socketfd,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval)) != 0){
+        perror("setsockopt for time out");
+        exit(1);
+    }
     //Function: Send file
-    printf("file transmission start\n");
+    struct myFtphdr *FRQ_packet;
+    int f_len = strlen(filename)+1;
+    int FRQ_size = f_len+4;
+    FRQ_packet = (struct myFtphdr *)malloc(FRQ_size);
+    //error and ack packet
+    struct myFtphdr *ACK_ERROR_packet;
+    int ACK_ERROR_size = 6;
+    ACK_ERROR_packet = (struct myFtphdr *)malloc(ACK_ERROR_size);
+
+    int sockaddr_len = sizeof(struct sockaddr_in);
+    while(1){
+        //recvive FRQ
+        if((recvfrom(socketfd,FRQ_packet,FRQ_size,MSG_WAITALL,(struct sockaddr*)clientaddr,&sockaddr_len))<0){
+            /*errCTL("recvfrom FRQ");*/
+            printf("time out waiting FRQ\n,request client to resend\n");
+            //send ERROR packet for FRQ with block number = 0
+            send_packet(socketfd,ACK_ERROR_packet,clientaddr,0,ERROR,ACK_ERROR_size);
+            continue;
+        }
+        else if(in_cksum((unsigned short *)FRQ_packet,FRQ_size)!=0){
+            send_packet(socketfd,ACK_ERROR_packet,clientaddr,0,ERROR,ACK_ERROR_size);
+            continue;
+        }
+        printf("receive FRQ packet\n");
+        struct myFtphdr *data_packet;
+        int data_packet_size = MFMAXDATA+6;
+        data_packet = (struct myFtphdr *)malloc(data_packet_size);
+        //initial block
+        int block = 1;
+        FILE *fin = fopen(filename,"rb");
+        while(1){
+            printf("file transmission start\n");
+            fread(data_packet->mf_data,1,MFMAXDATA,fin);
+            if((send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size)<0)<0){
+                errCTL("send_data_packet");
+            }
+            //wait ACK data
+            if((recvfrom(socketfd,ACK_ERROR_packet,ACK_ERROR_size,MSG_WAITALL,(struct sockaddr*)clientaddr,&sockaddr_len))<0){
+                /*errCTL("recvfrom FRQ");*/
+                printf("time out waiting ACK\n,request client to resend\n");
+                send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+                continue;
+            }
+            else if(in_cksum((unsigned short *)ACK_ERROR_packet,ACK_ERROR_size)!=0){
+                send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+                continue;
+            }
+            //if checksum is ok,check opcode
+            else if(ACK_ERROR_packet->mf_opcode == ACK){
+                if (ACK_ERROR_packet->mf_block < block){
+                    //this is old packet due to time out,discard it,wait for expected packet
+                    continue;
+                }
+                else if(ACK_ERROR_packet->mf_block == block){
+                    block++;
+                    send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+                }
+            }
+            else if(ACK_ERROR_packet->mf_opcode == ERROR){
+                
+            }
+            //ACK data is ok,send next data
+        }
+    }
 
     printf("send file : <%s> to %s \n", filename, inet_ntoa(clientaddr->sin_addr));
     /*printf("%lu bytes sent\n", index);*/

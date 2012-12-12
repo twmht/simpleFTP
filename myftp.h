@@ -57,7 +57,8 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
 int listenClient(int socketfd, int port, char *filename, struct sockaddr_in *clientaddr);
 int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename);
 int startMyftpClient(struct sockaddr_in *servaddr, const char *filename);
-static unsigned short in_cksum(unsigned short *addr, int len);
+int send_packet(int socketfd,struct myFtphdr * packet,struct sockaddr_in *addr,unsigned short block,short opcode,int size);
+unsigned short in_cksum(unsigned short *addr, int len);
 
 #ifdef DEBUG
 #define debugf(fmt, args...) fprintf(stderr, fmt, ## args)
