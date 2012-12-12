@@ -46,27 +46,27 @@ int initServAddr(int socketfd, int port, const char *device,struct sockaddr_in *
         perror("setsockopt");
         exit(1);
     }
-	struct sockaddr_in any;
+    struct sockaddr_in any;
     bzero(&any,sizeof(any));
     any.sin_family=AF_INET;
     any.sin_port= htons(port);
     any.sin_addr.s_addr=htonl(INADDR_ANY);
     if(bind(socketfd, (struct sockaddr *)(&any), sizeof(struct sockaddr_in)) < 0){
-		printf("Bind error!\n");
-		exit(1);
-	}
-    
-    struct ifreq interface;
-	bzero(&interface,sizeof(struct ifreq));
-	strcpy(interface.ifr_name,device);
-	if(ioctl(socketfd,SIOCGIFADDR,&interface)<0){
-		printf("ioctl error!\n");
-		exit(1);
-	}
+        printf("Bind error!\n");
+        exit(1);
+    }
 
-	/*addr = ((struct sockaddr_in*)&interface.ifr_addr);*/
+    struct ifreq interface;
+    bzero(&interface,sizeof(struct ifreq));
+    strcpy(interface.ifr_name,device);
+    if(ioctl(socketfd,SIOCGIFADDR,&interface)<0){
+        printf("ioctl error!\n");
+        exit(1);
+    }
+
+    /*addr = ((struct sockaddr_in*)&interface.ifr_addr);*/
     memcpy(addr,(struct sockaddr_in*)&interface.ifr_addr,sizeof(interface.ifr_addr));
-	printf("Server IP : %s\n", inet_ntoa(addr->sin_addr));
+    printf("Server IP : %s\n", inet_ntoa(addr->sin_addr));
 
     return 0;
 }
@@ -76,7 +76,7 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename)
     if((socketfd= socket(AF_INET,SOCK_DGRAM,0))<0){
         perror("Socket Error!");
         exit(1);
-	}
+    }
     /*set time out*/
     struct timeval timeout = {3,0};
     if(setsockopt(socketfd,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval)) != 0){
@@ -101,55 +101,64 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename)
             printf("time out waiting FRQ\n,request client to resend\n");
             //send ERROR packet for FRQ with block number = 0
             send_packet(socketfd,ACK_ERROR_packet,clientaddr,0,ERROR,ACK_ERROR_size);
-            continue;
         }
         else if(in_cksum((unsigned short *)FRQ_packet,FRQ_size)!=0){
             send_packet(socketfd,ACK_ERROR_packet,clientaddr,0,ERROR,ACK_ERROR_size);
-            continue;
-        }
-        printf("receive FRQ packet\n");
-        struct myFtphdr *data_packet;
-        int data_packet_size = MFMAXDATA+6;
-        data_packet = (struct myFtphdr *)malloc(data_packet_size);
-        //initial block
-        int block = 1;
-        FILE *fin = fopen(filename,"rb");
-        while(1){
-            printf("file transmission start\n");
-            fread(data_packet->mf_data,1,MFMAXDATA,fin);
-            if((send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size)<0)<0){
-                errCTL("send_data_packet");
-            }
-            //wait ACK data
-            if((recvfrom(socketfd,ACK_ERROR_packet,ACK_ERROR_size,MSG_WAITALL,(struct sockaddr*)clientaddr,&sockaddr_len))<0){
-                /*errCTL("recvfrom FRQ");*/
-                printf("time out waiting ACK\n,request client to resend\n");
-                send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
-                continue;
-            }
-            else if(in_cksum((unsigned short *)ACK_ERROR_packet,ACK_ERROR_size)!=0){
-                send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
-                continue;
-            }
-            //if checksum is ok,check opcode
-            else if(ACK_ERROR_packet->mf_opcode == ACK){
-                if (ACK_ERROR_packet->mf_block < block){
-                    //this is old packet due to time out,discard it,wait for expected packet
-                    continue;
-                }
-                else if(ACK_ERROR_packet->mf_block == block){
-                    block++;
-                    send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
-                }
-            }
-            else if(ACK_ERROR_packet->mf_opcode == ERROR){
-                
-            }
-            //ACK data is ok,send next data
         }
     }
-
+    printf("receive FRQ packet\n");
+    struct myFtphdr *data_packet;
+    int data_packet_size = MFMAXDATA+6;
+    data_packet = (struct myFtphdr *)malloc(data_packet_size);
+    //initial block
+    int block = 1;
+    FILE *fin = fopen(filename,"rb");
     printf("send file : <%s> to %s \n", filename, inet_ntoa(clientaddr->sin_addr));
+    while(1){
+        printf("file transmission start\n");
+        fread(data_packet->mf_data,1,MFMAXDATA,fin);
+        if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
+            exit(1);
+        }
+        //wait ACK packet
+        if((recvfrom(socketfd,ACK_ERROR_packet,ACK_ERROR_size,MSG_WAITALL,(struct sockaddr*)clientaddr,&sockaddr_len))<0){
+            /*errCTL("recvfrom FRQ");*/
+            printf("time out waiting ACK\n,request client to resend\n");
+            send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+            continue;
+        }
+        else if(in_cksum((unsigned short *)ACK_ERROR_packet,ACK_ERROR_size)!=0){
+            //check sum error,resend again
+            send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+            continue;
+        }
+        //if checksum is ok,check opcode
+        else if(ACK_ERROR_packet->mf_opcode == ACK){
+            if(ACK_ERROR_packet->mf_block == 0 && ACK_ERROR_packet->mf_opcode != FRQ ){
+                //this means finish the transmission
+                break;
+            }
+            if (ACK_ERROR_packet->mf_block != block){
+                //this is old packet due to time out,discard it,wait for expected packet
+                continue;
+            }
+            else if(ACK_ERROR_packet->mf_block == block){
+                //this packet is ok
+                block++;
+                send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+            }
+        }
+        else if(ACK_ERROR_packet->mf_opcode == ERROR){
+            //resend previous packet again
+            if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
+                exit(1);
+            }
+            continue;
+
+        }
+        //ACK data is ok,send next data
+    }
+
     /*printf("%lu bytes sent\n", index);*/
     printf("file transmission finish!!\n");
     return 0;
@@ -161,12 +170,12 @@ int listenClient(int socketfd, int port, char *filename, struct sockaddr_in *cli
     //          As receive broadcast message, check file exist or not
     //          Set bootServerInfo with server address and new port, and send back to clientint len = sizeof(struct sockaddr_in);
     int len = sizeof(struct sockaddr_in);
-	struct bootServerInfo bootInfo;
+    struct bootServerInfo bootInfo;
     bzero(&bootInfo,sizeof(struct bootServerInfo));
-	if(recvfrom(socketfd, &bootInfo, sizeof(bootInfo), 0, (struct sockaddr *)clientaddr, &len) < 0){
-		perror("recvfrom error");
-		exit(1);
-	}
+    if(recvfrom(socketfd, &bootInfo, sizeof(bootInfo), 0, (struct sockaddr *)clientaddr, &len) < 0){
+        perror("recvfrom error");
+        exit(1);
+    }
     else{
         struct stat buf;
         if(lstat(bootInfo.filename, &buf) < 0) 

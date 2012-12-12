@@ -84,11 +84,11 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
 
     struct myFtphdr *packet_FRQ;
     int f_len = strlen(filename)+1;
-    packet_FRQ =(struct myFtphdr *)malloc(f_len+4);
-    memset(packet_FRQ,0,sizeof(packet_FRQ));
-    /*strcpy(packet_FRQ->mf_filename,filename);*/
+    int FRQ_size = f_len+4;
+    packet_FRQ =(struct myFtphdr *)malloc(FRQ_size);
     packet_FRQ->mf_opcode = htons(FRQ);
     packet_FRQ->mf_cksum=htons(0);
+    strcpy(packet_FRQ->mf_filename,filename);
     packet_FRQ->mf_cksum=in_cksum((unsigned short *)packet_FRQ,f_len+4);
     if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
         perror("Send error!");
@@ -106,6 +106,9 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     struct myFtphdr *data_packet;
     int data_packet_size = MFMAXDATA+6;
     data_packet = (struct myFtphdr *)malloc(data_packet_size);
+    while(1){
+        
+    }
 
     //ACK and ERROR packet
     struct myFtphdr *ACK_ERROR_packet;

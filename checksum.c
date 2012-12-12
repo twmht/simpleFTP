@@ -9,6 +9,7 @@ int send_packet(int socketfd,struct myFtphdr *packet,struct sockaddr_in *addr,un
     if((sendto(socketfd, packet,size ,0, (struct sockaddr *)addr, len))<0){
         errCTL("sendto");
     }
+    return 0;
 }
 unsigned short in_cksum(unsigned short *addr, int len)
 {
