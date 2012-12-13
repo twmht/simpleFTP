@@ -55,7 +55,7 @@ int initServAddr(int socketfd, int port, const char *device,struct sockaddr_in *
 int initCliAddr(int socketfd, int port, char *sendClent,struct sockaddr_in *servaddr);
 int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broadaddr, struct sockaddr_in *servaddr);
 int listenClient(int socketfd, int port, char *filename, struct sockaddr_in *clientaddr);
-int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename);
+int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int port);
 int startMyftpClient(struct sockaddr_in *servaddr, const char *filename);
 int send_packet(int socketfd,struct myFtphdr * packet,struct sockaddr_in *addr,unsigned short block,short opcode,int size);
 unsigned short in_cksum(unsigned short *addr, int len);

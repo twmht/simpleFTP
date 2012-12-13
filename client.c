@@ -29,7 +29,7 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
 	struct bootServerInfo bootInfo;
     /*memcpy(bootInfo.filename,filename,strlen(filename)+1);*/
     strcpy(bootInfo.filename,filename);
-    socklen_t broad = sizeof(*broadaddr);
+    int len = sizeof(struct sockaddr_in);
 	if(sendto(socketfd,&bootInfo,sizeof(struct bootServerInfo),0,(struct sockaddr *)broadaddr,len)<0){
 		printf("sendto error!\n");
 		exit(1);
@@ -44,12 +44,9 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
 
 
     printf("filename = %s\n",filename);
-	bzero(&bootInfo,sizeof(struct bootServerInfo));
-    printf("filename = %s\n",filename);
-    exit(1);
     //receive from server
 	bzero(servaddr,sizeof(struct sockaddr_in));
-    int s = recvfrom(socketfd,&bootInfo,sizeof(struct bootServerInfo),MSG_WAITALL,(struct sockaddr*)&servaddr,&len);
+    int s = recvfrom(socketfd,&bootInfo,sizeof(struct bootServerInfo),MSG_WAITALL,(struct sockaddr*)servaddr,&len);
     if(s == -1){
         printf("receive server response time out!!\n");
         exit(1);
@@ -58,6 +55,8 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
         printf("find myftpServer IP : %s\n",bootInfo.servAddr);
         if(bootInfo.filename[0] != '\0'){
             printf("Myftp connent Port:%d\n",bootInfo.connectPort);
+            printf("serv port = %d\n",servaddr->sin_port);
+            servaddr->sin_port = htons(bootInfo.connectPort);
         }
         else if(bootInfo.filename[0] == '\0'){
             printf("No filename \"%s\" in the myftpServer\n",filename);

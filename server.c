@@ -70,13 +70,24 @@ int initServAddr(int socketfd, int port, const char *device,struct sockaddr_in *
 
     return 0;
 }
-int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename)
+int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int port)
 {
     int socketfd;
     if((socketfd= socket(AF_INET,SOCK_DGRAM,0))<0){
         perror("Socket Error!");
         exit(1);
     }
+    //test
+    struct sockaddr_in any;
+    bzero(&any,sizeof(any));
+    any.sin_family=AF_INET;
+    any.sin_port= htons(port);
+    any.sin_addr.s_addr=htonl(INADDR_ANY);
+    if(bind(socketfd, (struct sockaddr *)(&any), sizeof(struct sockaddr_in)) < 0){
+        printf("Bind error!\n");
+        exit(1);
+    }
+    
     /*set time out*/
     struct timeval timeout = {3,0};
     if(setsockopt(socketfd,SOL_SOCKET,SO_RCVTIMEO,(char *)&timeout,sizeof(struct timeval)) != 0){
@@ -98,13 +109,16 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename)
         //recvive FRQ
         if((recvfrom(socketfd,FRQ_packet,FRQ_size,MSG_WAITALL,(struct sockaddr*)clientaddr,&sockaddr_len))<0){
             /*errCTL("recvfrom FRQ");*/
-            printf("time out waiting FRQ\n,request client to resend\n");
+            printf("time out waiting FRQ,request client to resend\n");
             //send ERROR packet for FRQ with block number = 0
             send_packet(socketfd,ACK_ERROR_packet,clientaddr,0,ERROR,ACK_ERROR_size);
+            continue;
         }
         else if(in_cksum((unsigned short *)FRQ_packet,FRQ_size)!=0){
             send_packet(socketfd,ACK_ERROR_packet,clientaddr,0,ERROR,ACK_ERROR_size);
+            continue;
         }
+        break;
     }
     printf("receive FRQ packet\n");
     struct myFtphdr *data_packet;

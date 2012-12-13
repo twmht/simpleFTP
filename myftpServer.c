@@ -39,6 +39,7 @@ int main(int argc,char **argv)
     char filename[FNAMELEN];
     srand(time(NULL));
     int listen_result;
+    int random_port;
     while(1){
         if ((listen_result = listenClient(socketfd, port, filename, &clientaddr))>0) {
             //send back
@@ -46,7 +47,7 @@ int main(int argc,char **argv)
             bzero(&bootInfo,sizeof(struct bootServerInfo));
             char *client_ip = inet_ntoa(clientaddr.sin_addr);
             printf("Client from %s connect!!\n",client_ip);
-            port = port + (rand()%1000);
+            random_port = port + (rand()%1000);
             bootInfo.connectPort = port;
             if (listen_result != FILE_NOT_EXIST){
                 strcpy(bootInfo.filename,filename);
@@ -62,8 +63,8 @@ int main(int argc,char **argv)
                 exit(1);
             }
             printf("enter strarMyftpServer()\n");
-            clientaddr.sin_port = htons(port);
-            startMyftpServer(&clientaddr, filename);
+            clientaddr.sin_port = htons(random_port);
+            startMyftpServer(&clientaddr, filename,random_port);
         }
     }
 
