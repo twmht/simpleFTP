@@ -48,7 +48,7 @@ int main(int argc,char **argv)
             char *client_ip = inet_ntoa(clientaddr.sin_addr);
             printf("Client from %s connect!!\n",client_ip);
             random_port = port + (rand()%1000);
-            bootInfo.connectPort = port;
+            bootInfo.connectPort = random_port;
             if (listen_result != FILE_NOT_EXIST){
                 strcpy(bootInfo.filename,filename);
             }
