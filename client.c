@@ -91,7 +91,6 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     strcpy(packet_FRQ->mf_filename,filename);
     packet_FRQ->mf_cksum=in_cksum((unsigned short *)packet_FRQ,f_len+4);
     if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
-        perror("Send error!");
         exit(1);
     }
 
@@ -119,6 +118,15 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     int block = 1;
     while(1){
         if(recvfrom(socketfd,data_packet,data_packet_size,MSG_WAITALL,(struct sockaddr*)servaddr,&sockaddr_len)<0){
+            //check the FRQ is arrived
+            if(block == 1){
+                //if block  == 1,this means we have not received the data block 1
+                //so,the server may not receive FRQ or the block 1 has lost
+                if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
+                    exit(1);
+                }
+                continue;
+            }
             printf("time out waiting data\n,request server to resend\n");
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
         }
