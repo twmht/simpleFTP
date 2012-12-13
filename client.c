@@ -105,9 +105,6 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     struct myFtphdr *data_packet;
     int data_packet_size = MFMAXDATA+6;
     data_packet = (struct myFtphdr *)malloc(data_packet_size);
-    while(1){
-        
-    }
 
     //ACK and ERROR packet
     struct myFtphdr *ACK_ERROR_packet;
@@ -118,7 +115,7 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     int block = 1;
     while(1){
         if(recvfrom(socketfd,data_packet,data_packet_size,MSG_WAITALL,(struct sockaddr*)servaddr,&sockaddr_len)<0){
-            //check the FRQ is arrived
+            //check the FRQ is arrived or not
             if(block == 1){
                 //if block  == 1,this means we have not received the data block 1
                 //so,the server may not receive FRQ or the block 1 has lost
@@ -147,7 +144,7 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             }
             
         }
-        else if(data_packet->mf_opcode == DATA){
+        else if(data_packet->mf_opcode == DATA && data_packet->mf_block == block){
             int write_bytes = fwrite(data_packet->mf_data,1,MFMAXDATA,fin);
             if(write_bytes<MFMAXDATA){
                 printf("file transmission finish!!\n");

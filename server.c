@@ -115,61 +115,75 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename)
     FILE *fin = fopen(filename,"rb");
     printf("send file : <%s> to %s \n", filename, inet_ntoa(clientaddr->sin_addr));
     //we have received FRQ packet,so send block 1 of data first
+    int finish = 0;
     while(1){
         printf("file transmission start\n");
         fread(data_packet->mf_data,1,MFMAXDATA,fin);
-        if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
-            exit(1);
-        }
-        //wait ACK packet,may receive previous FRQ
-        while(1){
-            if((recvfrom(socketfd,ACK_ERROR_packet,ACK_ERROR_size,MSG_WAITALL,(struct sockaddr*)clientaddr,&sockaddr_len))<0){
-                printf("time out waiting ACK\n,request client to resend\n");
-                //maybe data lost or ack lost
-                //if data lost,client nerver send ack,so server need to send data again
-                //if data lost,wait for client to send ack again
-                if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
-                    exit(1);
-                }
-                continue;
+        //block number is the expected ack number
+        if(finish == 0){
+            if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
+                exit(1);
             }
-            else if(in_cksum((unsigned short *)ACK_ERROR_packet,ACK_ERROR_size)!=0){
-                //check sum error,resend again
-                send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
-                continue;
-            }
-            //if checksum is ok,check opcode
-            else if(ACK_ERROR_packet->mf_opcode == ACK){
-                if(ACK_ERROR_packet->mf_block == 0){
-                    //this means finish the transmission
-                    break;
-                }
-                if (ACK_ERROR_packet->mf_block != block){
-                    //this is old packet due to time out,discard it,wait for expected packet
+            //wait ACK packet,may receive previous FRQ
+            while(1){
+                if((recvfrom(socketfd,ACK_ERROR_packet,ACK_ERROR_size,MSG_WAITALL,(struct sockaddr*)clientaddr,&sockaddr_len))<0){
+                    printf("time out waiting ACK\n,request client to resend\n");
+                    //maybe data lost or ack lost
+                    //if data lost,client nerver send ack,so server need to send data again
+                    //if data lost,wait for client to send ack again
+                    if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
+                        exit(1);
+                    }
                     continue;
                 }
-                else if(ACK_ERROR_packet->mf_block == block){
-                    //this packet is ok
-                    block++;
+                else if(in_cksum((unsigned short *)ACK_ERROR_packet,ACK_ERROR_size)!=0){
+                    //check sum error,resend again
                     send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+                    continue;
                 }
-            }
-            else if(ACK_ERROR_packet->mf_opcode == FRQ){
-                //discard it because server has received FRQ
-                continue;
-            }
-            else if(ACK_ERROR_packet->mf_opcode == ERROR){
-                //resend previous packet again
-                if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
-                    exit(1);
+                //if checksum is ok,check opcode
+                else if(ACK_ERROR_packet->mf_opcode == ACK){
+                    if(ACK_ERROR_packet->mf_block == 0){
+                        //this means finish the transmission
+                        finish = 1;
+                        break;
+                    }
+                    if (ACK_ERROR_packet->mf_block != block){
+                        //this is old packet due to time out,discard it,wait for expected packet
+                        continue;
+                    }
+                    else if(ACK_ERROR_packet->mf_block == block){
+                        //this packet is ok
+                        block++;
+                        send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+                    }
                 }
-                continue;
+                else if(ACK_ERROR_packet->mf_opcode == FRQ){
+                    //this is previous delay FRQ,discard it because server has received FRQ
+                    continue;
+                }
+                else if(ACK_ERROR_packet->mf_opcode == ERROR){
+                    //this occurs when previous packet's checksum is error
+                    //resend previous packet again
+                    if(ACK_ERROR_packet->mf_block == block){
+                        if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
+                            exit(1);
+                        }
+                    }
+                    continue;
 
+                }
             }
+
             //ACK data is ok,send next data
+        }
+        else{
+            //file transmission finish
+            break;
         }
     }
 
+    fclose(fin);
     /*printf("%lu bytes sent\n", index);*/
     printf("file transmission finish!!\n");
     return 0;
