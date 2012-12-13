@@ -26,10 +26,10 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
     //          Set timeout to wait for server replay
     //Hint:     Use struct bootServerInfo as boradcast message
     //          Use setsockopt to set timeout
-	int len=sizeof(struct sockaddr_in);
 	struct bootServerInfo bootInfo;
+    /*memcpy(bootInfo.filename,filename,strlen(filename)+1);*/
     strcpy(bootInfo.filename,filename);
-
+    socklen_t broad = sizeof(*broadaddr);
 	if(sendto(socketfd,&bootInfo,sizeof(struct bootServerInfo),0,(struct sockaddr *)broadaddr,len)<0){
 		printf("sendto error!\n");
 		exit(1);
@@ -44,10 +44,12 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
 
 
     printf("filename = %s\n",filename);
+	bzero(&bootInfo,sizeof(struct bootServerInfo));
+    printf("filename = %s\n",filename);
+    exit(1);
     //receive from server
 	bzero(servaddr,sizeof(struct sockaddr_in));
-    int s = recvfrom(socketfd,&bootInfo,sizeof(bootInfo),MSG_WAITALL,(struct sockaddr*)&servaddr,&len);
-    printf("filename = %s\n",filename);
+    int s = recvfrom(socketfd,&bootInfo,sizeof(struct bootServerInfo),MSG_WAITALL,(struct sockaddr*)&servaddr,&len);
     if(s == -1){
         printf("receive server response time out!!\n");
         exit(1);
