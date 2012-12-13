@@ -155,7 +155,7 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
         block++;
     }
 
-    /*fclose(file);*/
+    fclose(fin);
         
 
     return 0;

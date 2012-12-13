@@ -62,8 +62,8 @@ int main(int argc,char **argv)
                 exit(1);
             }
             printf("enter strarMyftpServer()\n");
-            /*clientaddr.sin_port = htons(port);*/
-            /*startMyftpServer(&clientaddr, filename);*/
+            clientaddr.sin_port = htons(port);
+            startMyftpServer(&clientaddr, filename);
         }
     }
 

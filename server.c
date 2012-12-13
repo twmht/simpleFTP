@@ -144,7 +144,7 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename)
                 //if checksum is ok,check opcode
                 else if(ACK_ERROR_packet->mf_opcode == ACK){
                     if(ACK_ERROR_packet->mf_block == 0){
-                        //this means finish the transmission
+                        //this means finish the transmission,and client have receive last packet
                         finish = 1;
                         break;
                     }
