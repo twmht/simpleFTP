@@ -135,13 +135,14 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
         fread(data_packet->mf_data,1,MFMAXDATA,fin);
         //block number is the expected ack number
         if(finish == 0){
+            printf("send data\n");
             if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
                 exit(1);
             }
             //wait ACK packet,may receive previous FRQ
             while(1){
                 if((recvfrom(socketfd,ACK_ERROR_packet,ACK_ERROR_size,MSG_WAITALL,(struct sockaddr*)clientaddr,&sockaddr_len))<0){
-                    printf("time out waiting ACK\n,request client to resend\n");
+                    printf("time out waiting ACK,request client to resend\n");
                     //maybe data lost or ack lost
                     //if data lost,client nerver send ack,so server need to send data again
                     //if data lost,wait for client to send ack again

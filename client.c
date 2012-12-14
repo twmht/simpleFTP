@@ -55,8 +55,8 @@ int findServerAddr(int socketfd, char *filename,const struct sockaddr_in *broada
         printf("find myftpServer IP : %s\n",bootInfo.servAddr);
         if(bootInfo.filename[0] != '\0'){
             printf("Myftp connent Port:%d\n",bootInfo.connectPort);
-            printf("serv port = %d\n",servaddr->sin_port);
             servaddr->sin_port = htons(bootInfo.connectPort);
+            /*printf("serv port = %d\n",ntohs(servaddr->sin_port));*/
         }
         else if(bootInfo.filename[0] == '\0'){
             printf("No filename \"%s\" in the myftpServer\n",filename);
@@ -120,12 +120,13 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             if(block == 1){
                 //if block  == 1,this means we have not received the data block 1
                 //so,the server may not receive FRQ or the block 1 has lost
+                printf("send FRQ packet again\n");
                 if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
                     exit(1);
                 }
                 continue;
             }
-            printf("time out waiting data\n,request server to resend\n");
+            printf("time out waiting data,request server to resend\n");
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
         }
         else if(in_cksum((unsigned short *)data_packet,data_packet_size)!=0){
@@ -135,6 +136,7 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
         else if(data_packet->mf_opcode == ERROR){
             //previous FRQ error,send FRQ again
             if(data_packet->mf_block == 0){
+                printf("opcode is ERROR,send FRQ packet again\n");
                 if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
                     errCTL("sendto error");
                 }
@@ -146,6 +148,7 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             
         }
         else if(data_packet->mf_opcode == DATA && data_packet->mf_block == block){
+            printf("receive data\n");
             int write_bytes = fwrite(data_packet->mf_data,1,MFMAXDATA,fin);
             if(write_bytes<MFMAXDATA){
                 printf("file transmission finish!!\n");
