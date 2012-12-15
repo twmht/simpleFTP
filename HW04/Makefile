@@ -1,5 +1,5 @@
 all:
-	gcc myftpClient.c -o myftpClient
-	gcc myftpServer.c -o myftpServer
+	gcc myftpClient.c -o ./client/myftpClient
+	gcc myftpServer.c -o ./server/myftpServer
 clean:
 	rm -f myftpClient myftpServer *~ *.client

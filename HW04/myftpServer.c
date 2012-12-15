@@ -274,7 +274,7 @@ int main(int argc,char* argv[]){
 	bzero(&interface,sizeof(struct ifreq));
 	strcpy(interface.ifr_name,DEVICE);
 	if(ioctl(socketfd,SIOCGIFADDR,&interface)<0){
-		printf("ioctl error!\n");
+		perror("ioctl error!");
 		exit(1);
 	}
 

@@ -87,11 +87,12 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     int f_len = strlen(filename)+1;
     int FRQ_size = f_len+4;
     packet_FRQ =(struct myFtphdr *)malloc(FRQ_size);
+    bzero(packet_FRQ,FRQ_size);
     packet_FRQ->mf_opcode = htons(FRQ);
     packet_FRQ->mf_cksum=htons(0);
     strcpy(packet_FRQ->mf_filename,filename);
-    packet_FRQ->mf_cksum=in_cksum((unsigned short *)packet_FRQ,f_len+4);
-    if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
+    packet_FRQ->mf_cksum=in_cksum((unsigned short *)packet_FRQ,FRQ_size);
+    if(sendto(socketfd,packet_FRQ,FRQ_size,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
         exit(1);
     }
 
@@ -115,31 +116,32 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     int sockaddr_len = sizeof(struct sockaddr_in);
     int block = 1;
     while(1){
-        if(recvfrom(socketfd,data_packet,data_packet_size,MSG_WAITALL,(struct sockaddr*)servaddr,&sockaddr_len)<0){
+        //MSG_WAITALL
+        if(recvfrom(socketfd,data_packet,data_packet_size,0,(struct sockaddr*)servaddr,&sockaddr_len)<0){
             //check the FRQ is arrived or not
             if(block == 1){
                 //if block  == 1,this means we have not received the data block 1
                 //so,the server may not receive FRQ or the block 1 has lost
-                printf("send FRQ packet again\n");
-                if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
+                printf("time out!! send FRQ packet again\n");
+                if(sendto(socketfd,packet_FRQ,FRQ_size,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
                     exit(1);
                 }
                 continue;
             }
-            printf("time out waiting data,request server to resend\n");
-            send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
+            /*printf("time out waiting data,request server to resend\n");*/
+            /*send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);*/
         }
         else if(in_cksum((unsigned short *)data_packet,data_packet_size)!=0){
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
         }
         //check sum is ok, check opcode
-        else if(data_packet->mf_opcode == ERROR){
+        else if(ntohs(data_packet->mf_opcode) == ERROR){
             //previous FRQ error,send FRQ again
-            if(data_packet->mf_block == 0){
+            if(ntohs(data_packet->mf_block) == 0){
                 printf("opcode is ERROR,send FRQ packet again\n");
-                if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
-                    errCTL("sendto error");
-                }
+                /*if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){*/
+                    /*errCTL("sendto error");*/
+                /*}*/
             }
             //ACK error,resend again
             else{
@@ -147,8 +149,8 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             }
             
         }
-        else if(data_packet->mf_opcode == DATA && data_packet->mf_block == block){
-            printf("receive data\n");
+        else if(ntohs(data_packet->mf_opcode) == DATA && ntohs(data_packet->mf_block) == block){
+            printf("receive data for block = %d\n",block);
             int write_bytes = fwrite(data_packet->mf_data,1,MFMAXDATA,fin);
             if(write_bytes<MFMAXDATA){
                 printf("file transmission finish!!\n");
