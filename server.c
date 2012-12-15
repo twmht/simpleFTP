@@ -165,6 +165,9 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
                     /*printf("checksum error,send ACK_ERROR");*/
                     printf("checksum error,wait next ACK\n");
                     /*send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);*/
+                    if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
+                        exit(1);
+                    }
                     continue;
                 }
                 //if checksum is ok,check opcode
@@ -181,7 +184,7 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
                     else if(ntohs(ACK_ERROR_packet->mf_block) == block){
                         //this packet is ok
                         block++;
-                        send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+                        break;
                     }
                 }
                 else if(ntohs(ACK_ERROR_packet->mf_opcode) == FRQ){
