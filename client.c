@@ -122,46 +122,51 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             if(block == 1){
                 //if block  == 1,this means we have not received the data block 1
                 //so,the server may not receive FRQ or the block 1 has lost
+                //FRQ can be regard as request for block 1
                 printf("time out!! send FRQ packet again\n");
                 if(sendto(socketfd,packet_FRQ,FRQ_size,0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){
                     exit(1);
                 }
                 continue;
             }
-            /*printf("time out waiting data,request server to resend\n");*/
-            /*send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);*/
+            //client has received block 1
+            printf("time out waiting data,request server to resend\n");
+            send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
         }
         else if(in_cksum((unsigned short *)data_packet,data_packet_size)!=0){
+            //receive data has error bit
+            printf("received data checksum error\n");
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
         }
         //check sum is ok, check opcode
-        else if(ntohs(data_packet->mf_opcode) == ERROR){
-            //previous FRQ error,send FRQ again
-            if(ntohs(data_packet->mf_block) == 0){
-                printf("opcode is ERROR,send FRQ packet again\n");
-                /*if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){*/
-                    /*errCTL("sendto error");*/
-                /*}*/
-            }
-            //ACK error,resend again
-            else{
-                send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ACK,ACK_ERROR_size);
-            }
+        /*else if(ntohs(data_packet->mf_opcode) == ERROR){*/
+            /*//previous FRQ error,send FRQ again*/
+            /*if(ntohs(data_packet->mf_block) == 0){*/
+                /*printf("opcode is ERROR,send FRQ packet again\n");*/
+                /*[>if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){<]*/
+                    /*[>errCTL("sendto error");<]*/
+                /*[>}<]*/
+            /*}*/
+            /*//ACK error,resend again*/
+            /*else{*/
+                /*send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ACK,ACK_ERROR_size);*/
+            /*}*/
             
-        }
+        /*}*/
         else if(ntohs(data_packet->mf_opcode) == DATA && ntohs(data_packet->mf_block) == block){
             printf("receive data for block = %d\n",block);
             int write_bytes = fwrite(data_packet->mf_data,1,MFMAXDATA,fin);
             if(write_bytes<MFMAXDATA){
                 printf("file transmission finish!!\n");
                 block = 0;
+                fclose(fin);
             }
+            //send ACK
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ACK,ACK_ERROR_size);
+            block++;
         }
-        block++;
     }
 
-    fclose(fin);
         
 
     return 0;

@@ -162,13 +162,14 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
                 }
                 else if(in_cksum((unsigned short *)ACK_ERROR_packet,ACK_ERROR_size)!=0){
                     //check sum error,resend again
-                    printf("checksum error,send ACK_ERROR");
-                    send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+                    /*printf("checksum error,send ACK_ERROR");*/
+                    printf("checksum error,wait next ACK\n");
+                    /*send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);*/
                     continue;
                 }
                 //if checksum is ok,check opcode
                 else if(ntohs(ACK_ERROR_packet->mf_opcode) == ACK){
-                    if(ACK_ERROR_packet->mf_block == 0){
+                    if(ntohs(ACK_ERROR_packet->mf_block) == 0){
                         //this means finish the transmission,and client have receive last packet
                         finish = 1;
                         break;
