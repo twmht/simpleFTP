@@ -139,12 +139,18 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
     printf("client_potr = %d\n",ntohs(clientaddr->sin_port));
     //we have received FRQ packet,so send block 1 of data first
     int finish = 0;
+    printf("file transmission start\n");
+    int read;
     while(1){
-        printf("file transmission start\n");
-        fread(data_packet->mf_data,1,MFMAXDATA,fin);
-        //block number is the expected ack number
         if(finish == 0){
-            printf("send data\n");
+            bzero(data_packet,data_packet_size);
+            read = fread(data_packet->mf_data,1,MFMAXDATA,fin);
+            if(feof(fin)){
+                printf("end of file\n");
+            }
+            //test
+            //block number is the expected ack number
+            printf("send block = %d,data for size = %d\n",block,strlen(data_packet->mf_data));
             if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
                 exit(1);
             }
@@ -165,23 +171,31 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
                     /*printf("checksum error,send ACK_ERROR");*/
                     printf("checksum error,wait next ACK\n");
                     /*send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);*/
+                    if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
+                        exit(1);
+                    }
                     continue;
                 }
                 //if checksum is ok,check opcode
                 else if(ntohs(ACK_ERROR_packet->mf_opcode) == ACK){
                     if(ntohs(ACK_ERROR_packet->mf_block) == 0){
                         //this means finish the transmission,and client have receive last packet
+                        printf("block = %d\n",block);
+                        printf("receive block 0,file transmission stop\n");
                         finish = 1;
+                        fclose(fin);
                         break;
                     }
                     if (ntohs(ACK_ERROR_packet->mf_block) != block){
                         //this is old packet due to time out,discard it,wait for expected packet
+                        printf("receive old packet\n");
                         continue;
                     }
                     else if(ntohs(ACK_ERROR_packet->mf_block) == block){
                         //this packet is ok
+                        printf("packet is OK\n");
                         block++;
-                        send_packet(socketfd,ACK_ERROR_packet,clientaddr,block,ERROR,ACK_ERROR_size);
+                        break;
                     }
                 }
                 else if(ntohs(ACK_ERROR_packet->mf_opcode) == FRQ){
@@ -210,7 +224,6 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
         }
     }
 
-    fclose(fin);
     /*printf("%lu bytes sent\n", index);*/
     printf("file transmission finish!!\n");
     return 0;

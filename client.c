@@ -117,6 +117,7 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     int block = 1;
     while(1){
         //MSG_WAITALL
+        bzero(data_packet,data_packet_size);
         if(recvfrom(socketfd,data_packet,data_packet_size,0,(struct sockaddr*)servaddr,&sockaddr_len)<0){
             //check the FRQ is arrived or not
             if(block == 1){
@@ -138,32 +139,22 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             printf("received data checksum error\n");
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
         }
-        //check sum is ok, check opcode
-        /*else if(ntohs(data_packet->mf_opcode) == ERROR){*/
-            /*//previous FRQ error,send FRQ again*/
-            /*if(ntohs(data_packet->mf_block) == 0){*/
-                /*printf("opcode is ERROR,send FRQ packet again\n");*/
-                /*[>if(sendto(socketfd,packet_FRQ,sizeof(packet_FRQ),0,(struct sockaddr *)servaddr,sizeof(struct sockaddr_in)) == -1){<]*/
-                    /*[>errCTL("sendto error");<]*/
-                /*[>}<]*/
-            /*}*/
-            /*//ACK error,resend again*/
-            /*else{*/
-                /*send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ACK,ACK_ERROR_size);*/
-            /*}*/
-            
-        /*}*/
         else if(ntohs(data_packet->mf_opcode) == DATA && ntohs(data_packet->mf_block) == block){
-            printf("receive data for block = %d\n",block);
-            int write_bytes = fwrite(data_packet->mf_data,1,MFMAXDATA,fin);
+            printf("receive data for block = %d\n,data size = %d",block,strlen(data_packet->mf_data));
+            int write_bytes = fwrite(data_packet->mf_data,1,strlen(data_packet->mf_data),fin);
+            /*printf("write_bytes = %d\n",write_bytes);*/
             if(write_bytes<MFMAXDATA){
                 printf("file transmission finish!!\n");
                 block = 0;
+                send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ACK,ACK_ERROR_size);
                 fclose(fin);
+                break;
             }
+            else{
             //send ACK
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ACK,ACK_ERROR_size);
             block++;
+            }
         }
     }
 
