@@ -183,6 +183,7 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
                         printf("block = %d\n",block);
                         printf("receive block 0,file transmission stop\n");
                         finish = 1;
+                        fclose(fin);
                         break;
                     }
                     if (ntohs(ACK_ERROR_packet->mf_block) != block){
@@ -223,7 +224,6 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
         }
     }
 
-    fclose(fin);
     /*printf("%lu bytes sent\n", index);*/
     printf("file transmission finish!!\n");
     return 0;
