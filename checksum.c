@@ -1,12 +1,10 @@
 #include "myftp.h"
 int send_packet(int socketfd,struct myFtphdr *packet,struct sockaddr_in *addr,unsigned short block,short opcode,int size){
-    int len = sizeof(struct sockaddr_in);
-    bzero(packet,size);
     packet->mf_opcode=htons(opcode);
     packet->mf_cksum=0;
     packet->mf_block = htons(block);
     packet->mf_cksum=in_cksum((unsigned short *)packet,size);
-    if((sendto(socketfd, packet,size ,0, (struct sockaddr *)addr, len))<0){
+    if((sendto(socketfd, packet,size ,0, (struct sockaddr *)addr, sizeof(struct sockaddr_in)))<0){
         errCTL("sendto");
     }
     return 0;
