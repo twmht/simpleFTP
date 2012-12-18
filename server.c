@@ -160,6 +160,9 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
             //test
             //block number is the expected ack number
             printf("send block = %d,data for size = %d\n",block,strlen(data_packet->mf_data));
+            if(block == 65535){
+                block = 2;
+            }
             if(send_packet(socketfd,data_packet,clientaddr,block,DATA,data_packet_size) == -1){
                 exit(1);
             }

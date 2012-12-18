@@ -157,6 +157,9 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             //send ACK
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ACK,ACK_ERROR_size);
             block++;
+            if(block == 65535){
+                block = 2;
+            }
             }
         }
     }
