@@ -141,12 +141,21 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
     int finish = 0;
     printf("file transmission start\n");
     int read;
+    struct myFtphdr *last_data_packet;
     while(1){
         if(finish == 0){
             bzero(data_packet,data_packet_size);
             read = fread(data_packet->mf_data,1,MFMAXDATA,fin);
             if(feof(fin)){
                 printf("end of file\n");
+                printf("read = %d\n",read);
+                if(read<MFMAXDATA){
+                    data_packet_size = read+6;
+                    last_data_packet = (struct myFtphdr *)malloc(data_packet_size);
+                    memcpy(last_data_packet->mf_data,data_packet->mf_data,read);
+                    free(data_packet);
+                    data_packet = last_data_packet;
+                }
             }
             //test
             //block number is the expected ack number
