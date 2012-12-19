@@ -114,14 +114,14 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
     ACK_ERROR_packet = (struct myFtphdr *)malloc(ACK_ERROR_size);
 
     int sockaddr_len = sizeof(struct sockaddr_in);
-    int block = 1;
+    int block = 0;
     int recv;
     while(1){
         //MSG_WAITALL
         bzero(data_packet,data_packet_size);
         if((recv = recvfrom(socketfd,data_packet,data_packet_size,0,(struct sockaddr*)servaddr,&sockaddr_len))<0){
             //check the FRQ is arrived or not
-            if(block == 1){
+            if(block == 0){
                 //if block  == 1,this means we have not received the data block 1
                 //so,the server may not receive FRQ or the block 1 has lost
                 //FRQ can be regard as request for block 1
@@ -140,8 +140,8 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             printf("received data checksum error\n");
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
         }
-        else if(ntohs(data_packet->mf_opcode) == DATA && ntohs(data_packet->mf_block) == block){
-            printf("receive data for block = %d\n,data size = %d",block,strlen(data_packet->mf_data));
+        else if(ntohs(data_packet->mf_opcode) == DATA && ntohs(data_packet->mf_block) == block+1){
+            printf("receive data for block = %d\n,data size = %d",ntohs(data_packet->mf_block),strlen(data_packet->mf_data));
             
             int write_bytes = recv-6;
             fwrite(data_packet->mf_data,1,write_bytes,fin);
@@ -155,12 +155,18 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             }
             else{
             //send ACK
+            block = ntohs(data_packet->mf_block);
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ACK,ACK_ERROR_size);
-            block++;
-            if(block == 65535){
-                block = 2;
+            printf("send ack = %d\n",block);
+            if(block == 65534){
+                block = 1;
             }
             }
+        }else if(ntohs(data_packet->mf_opcode) == DATA && ntohs(data_packet->mf_block) != block+1){
+            //server dose not receive previous ack packet,send again
+            int previous = ntohs(data_packet->mf_block);
+            send_packet(socketfd,ACK_ERROR_packet,servaddr,previous,ACK,ACK_ERROR_size);
+            
         }
     }
 

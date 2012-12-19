@@ -192,8 +192,7 @@ int startMyftpServer(struct sockaddr_in *clientaddr, const char *filename,int po
                 else if(ntohs(ACK_ERROR_packet->mf_opcode) == ACK){
                     if(ntohs(ACK_ERROR_packet->mf_block) == 0){
                         //this means finish the transmission,and client have receive last packet
-                        printf("block = %d\n",block);
-                        printf("receive block 0,file transmission stop\n");
+                        printf("receive block 0,file transmission stop with client IP = %s\n",inet_ntoa(clientaddr->sin_addr));
                         finish = 1;
                         fclose(fin);
                         break;

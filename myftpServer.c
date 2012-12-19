@@ -66,6 +66,7 @@ int main(int argc,char **argv)
             pid_t pid = fork();
             if(pid == 0){
                 startMyftpServer(&clientaddr, filename,random_port);
+                break;
             }
         }
     }
