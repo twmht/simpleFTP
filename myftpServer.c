@@ -63,8 +63,11 @@ int main(int argc,char **argv)
                 exit(1);
             }
             printf("enter strarMyftpServer()\n");
-            /*clientaddr.sin_port = htons(random_port);*/
-            startMyftpServer(&clientaddr, filename,random_port);
+            pid_t pid = fork();
+            if(pid == 0){
+                startMyftpServer(&clientaddr, filename,random_port);
+                break;
+            }
         }
     }
 

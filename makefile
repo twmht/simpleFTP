@@ -15,5 +15,12 @@ $(server).o: $(header) $(server).c
 	gcc -c $(server).c
 $(checksum).o: $(header) $(checksum).c
 	gcc -c $(checksum).c
+
+test: $(main_server).c $(main_client).c $(client).o $(server).o $(checksum).o
+	mkdir -p ~/myftp/server
+	mkdir -p ~/myftp/client
+	gcc $(server).o $(checksum).o $(main_server).c -o ~/myftp/server/$(main_server)
+	gcc $(checksum).o $(client).o  $(main_client).c -o ~/myftp/client/$(main_client)
+
 clean:
 	rm -f *.o
