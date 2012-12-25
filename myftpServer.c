@@ -62,6 +62,10 @@ int main(int argc,char **argv)
                 perror("sendto error");
                 exit(1);
             }
+            if(listen_result == FILE_NOT_EXIST){
+                printf("file not exist!!!\nwaiting new client\n");
+                continue;
+            }
             printf("enter strarMyftpServer()\n");
             pid_t pid = fork();
             if(pid == 0){
