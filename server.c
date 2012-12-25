@@ -253,13 +253,11 @@ int listenClient(int socketfd, int port, char *filename, struct sockaddr_in *cli
         exit(1);
     }
     else{
-        struct stat buf;
-        if(lstat(bootInfo.filename, &buf) < 0) 
+        if(strcmp(filename,bootInfo.filename) != 0) 
         {
             printf("receive a request of unknow file : %s\n", bootInfo.filename);
             return FILE_NOT_EXIST;
         }
-        strcpy(filename,bootInfo.filename);
         return 1;
     }
 

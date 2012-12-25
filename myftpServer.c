@@ -36,12 +36,11 @@ int main(int argc,char **argv)
     printf("Myftp Server Start!!\nWait clients\n");
     printf("Share file: %s\n",argv[2]);
     int port = atoi(argv[1]);
-    char filename[FNAMELEN];
     srand(time(NULL));
     int listen_result;
     int random_port;
     while(1){
-        if ((listen_result = listenClient(socketfd, port, filename, &clientaddr))>0) {
+        if ((listen_result = listenClient(socketfd, port, argv[2], &clientaddr))>0) {
             //send back
             struct bootServerInfo bootInfo;
             bzero(&bootInfo,sizeof(struct bootServerInfo));
@@ -50,7 +49,7 @@ int main(int argc,char **argv)
             random_port = port + (rand()%1000);
             bootInfo.connectPort = random_port;
             if (listen_result != FILE_NOT_EXIST){
-                strcpy(bootInfo.filename,filename);
+                strcpy(bootInfo.filename,argv[2]);
             }
             else{
                 bootInfo.filename[0] = '\0';
@@ -69,7 +68,7 @@ int main(int argc,char **argv)
             printf("enter strarMyftpServer()\n");
             pid_t pid = fork();
             if(pid == 0){
-                startMyftpServer(&clientaddr, filename,random_port);
+                startMyftpServer(&clientaddr, argv[2],random_port);
                 break;
             }
         }
