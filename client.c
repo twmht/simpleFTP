@@ -141,7 +141,7 @@ int startMyftpClient(struct sockaddr_in *servaddr, const char *filename)
             send_packet(socketfd,ACK_ERROR_packet,servaddr,block,ERROR,ACK_ERROR_size);
         }
         else if(ntohs(data_packet->mf_opcode) == DATA && ntohs(data_packet->mf_block) == block+1){
-            printf("receive data for block = %d\n,data size = %d",ntohs(data_packet->mf_block),strlen(data_packet->mf_data));
+            printf("receive data for block = %d\n",ntohs(data_packet->mf_block));
             
             int write_bytes = recv-6;
             fwrite(data_packet->mf_data,1,write_bytes,fin);
