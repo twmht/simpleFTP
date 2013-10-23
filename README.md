@@ -2,14 +2,18 @@
 =====
 ##A simple FTP Server/Client Applications
 
-###Server
+###Usage
+
+####Server
 
 ```
+#sudo ./myftpServer port_number shared_file
 sudo ./myftpServer 5566 movie.avi
 ```
 
-###Client
+####Client
 
 ```
+#sudo ./myftpClient port_number request_file
 ./myftpClient 5566 movie.avi
 ```
